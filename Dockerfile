@@ -1,6 +1,4 @@
-FROM selenium/standalone-chrome:2.50.0
-
-MAINTAINER Mike George <mike@tallduck.com>
+FROM selenium/standalone-chrome:3.5.3
 
 USER root
 
@@ -12,7 +10,7 @@ RUN apt-get update \
       curl \
       dpkg-dev \
       gcc \
-      libbz2-1.0=1.0.6-7 \
+      libbz2-1.0 \
       libdpkg-perl \
       libffi-dev \
       libgdbm3 \
@@ -21,10 +19,10 @@ RUN apt-get update \
       libyaml-dev \
       netbase \
       perl \
-      perl-base=5.20.2-2ubuntu0.1 \
+      perl-base\
       procps \
       zlib1g-dev \
-      zlib1g=1:1.2.8.dfsg-2ubuntu1
+      zlib1g
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
@@ -34,11 +32,8 @@ RUN mkdir -p /usr/local/etc \
  } >> /usr/local/etc/gemrc
 
 ENV RUBY_MAJOR 2.3
-ENV RUBY_VERSION 2.3.0
-ENV RUBY_DOWNLOAD_SHA256 ba5ba60e5f1aa21b4ef8e9bf35b9ddb57286cb546aac4b5a28c71f459467e507
+ENV RUBY_VERSION 2.3.1
 ENV RUBYGEMS_VERSION 2.5.2
-
-# some of ruby's build scripts are written in ruby
 # we purge this later to make sure our final image uses what we just built
 RUN set -ex \
   && buildDeps=' \
@@ -53,25 +48,25 @@ RUN set -ex \
     libgdbm-dev \
     libglib2.0-dev \
     libncurses-dev \
-    libncurses5=5.9+20140712-2ubuntu2 \
-    libncursesw5=5.9+20140712-2ubuntu2 \
+    libncurses5\
+    libncursesw5\
     libpcre3-dev \
-    libpcre3=2:8.35-3.3ubuntu1.1 \
+    libpcre3\
     libpython-stdlib \
     libpython2.7-stdlib \
     libreadline-dev \
     libreadline6-dev \
-    libtinfo-dev=5.9+20140712-2ubuntu2 \
-    libtinfo5=5.9+20140712-2ubuntu2 \
+    libtinfo-dev\
+    libtinfo5\
     libxml2-dev \
     libxslt-dev \
     make \
-    ncurses-bin=5.9+20140712-2ubuntu2 \
+    ncurses-bin\
     python \
     python2.7 \
+    libmysqlclient-dev \
   && rm -rf /var/lib/apt/lists/* \
   && curl -fSL -o ruby.tar.gz "http://cache.ruby-lang.org/pub/ruby/$RUBY_MAJOR/ruby-$RUBY_VERSION.tar.gz" \
-  && echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.gz" | sha256sum -c - \
   && mkdir -p /usr/src/ruby \
   && tar -xzf ruby.tar.gz -C /usr/src/ruby --strip-components=1 \
   && rm ruby.tar.gz \
@@ -85,12 +80,10 @@ RUN set -ex \
   && gem update --system $RUBYGEMS_VERSION \
   && rm -r /usr/src/ruby
 
-ENV BUNDLER_VERSION 1.11.2
+ENV BUNDLER_VERSION 1.16.0.pre.2
 
 RUN gem install bundler --version "$BUNDLER_VERSION"
 
-# install things globally, for great justice
-# and don't create ".bundle" in all our apps
 ENV GEM_HOME /usr/local/bundle
 ENV BUNDLE_PATH="$GEM_HOME" \
   BUNDLE_BIN="$GEM_HOME/bin" \
@@ -100,4 +93,5 @@ ENV PATH $BUNDLE_BIN:$PATH
 RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
   && chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
 
-USER seluser
+RUN useradd -ms /bin/bash tester
+USER tester  
